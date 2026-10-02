@@ -7,7 +7,7 @@
 // Point this at your running server.
 // Locally: http://localhost:3001
 // Deployed on Render/Railway: https://your-app.onrender.com
-const EMAIL_SERVER_URL = 'http://localhost:3001';
+const EMAIL_SERVER_URL = 'https://honeybee-email-server.onrender.com';
 
 /* ── Core send function ── */
 async function sendAdminEmail(params) {

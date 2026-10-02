@@ -19,12 +19,17 @@ app.use(cors({
   origin: process.env.ALLOWED_ORIGIN || '*'
 }));
 
-/* ── Gmail SMTP transporter ── */
+/* ── Gmail SMTP transporter (port 587 — works on Render) ── */
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,        // STARTTLS — required on Render (port 465 is blocked)
   auth: {
-    user: process.env.GMAIL_USER, // your Gmail address
-    pass: process.env.GMAIL_PASS  // your Gmail App Password (NOT your login password)
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
