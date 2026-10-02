@@ -758,6 +758,15 @@
 <script src="js/notifications.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/HoneyBee/sw.js')
+        .then(() => console.log('SW registered'))
+        .catch(e => console.warn('SW failed:', e));
+    });
+  }
+</script>
 
 </body>
 </html>
