@@ -9,26 +9,44 @@
 // Deployed on Render/Railway: https://your-app.onrender.com
 const EMAIL_SERVER_URL = 'https://honeybee-email-server.onrender.com';
 
-/* ── Core send function ── */
+/* ── Core send function — with retry ── */
 async function sendAdminEmail(params) {
-  try {
+  const attempt = async () => {
     const res = await fetch(`${EMAIL_SERVER_URL}/send-email`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(params)
     });
-
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      console.warn('HoneyBee: Email server error —', err.error || res.status);
-    } else {
-      console.log('HoneyBee: Admin email sent —', params.event_type);
+      throw new Error(err.error || res.status);
     }
-  } catch (err) {
-    // Server not running or network error — never crash the app
-    console.warn('HoneyBee: Could not reach email server —', err.message);
+    return true;
+  };
+
+  try {
+    await attempt();
+    console.log('HoneyBee: Admin email sent —', params.event_type);
+  } catch (e1) {
+    // Server may have been sleeping — wait 4s and retry once
+    console.warn('HoneyBee: First attempt failed, retrying in 4s…', e1.message);
+    await new Promise(r => setTimeout(r, 4000));
+    try {
+      await attempt();
+      console.log('HoneyBee: Admin email sent (retry) —', params.event_type);
+    } catch (e2) {
+      console.warn('HoneyBee: Email failed after retry —', e2.message);
+    }
   }
 }
+
+/* ── Keep server awake — ping every 10 minutes ── */
+setInterval(() => {
+  fetch(`${EMAIL_SERVER_URL}/health`).catch(() => {});
+}, 10 * 60 * 1000);
+
+// Also ping immediately on page load to wake the server early
+fetch(`${EMAIL_SERVER_URL}/health`).catch(() => {});
 
 /* ══════════════════════════════════════
    PUBLIC NOTIFICATION HELPERS
