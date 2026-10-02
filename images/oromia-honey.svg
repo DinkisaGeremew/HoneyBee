@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="jar" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#FFF3DC"/>
+      <stop offset="100%" stop-color="#F5A623"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" fill="#FFF8E7" rx="16"/>
+  <ellipse cx="100" cy="155" rx="48" ry="8" fill="#E8890A" opacity=".3"/>
+  <!-- jar body -->
+  <path d="M62 90 Q58 160 100 165 Q142 160 138 90Z" fill="url(#jar)" stroke="#D4881A" stroke-width="2"/>
+  <!-- jar neck -->
+  <rect x="78" y="72" width="44" height="22" rx="6" fill="#F5A623" stroke="#D4881A" stroke-width="2"/>
+  <!-- lid -->
+  <rect x="72" y="64" width="56" height="14" rx="7" fill="#D4881A"/>
+  <!-- honey drip -->
+  <path d="M95 165 Q93 178 97 182 Q101 185 105 182 Q109 178 107 165" fill="#F5A623"/>
+  <!-- label -->
+  <rect x="72" y="108" width="56" height="34" rx="6" fill="white" opacity=".7"/>
+  <text x="100" y="122" text-anchor="middle" font-size="7" font-weight="700" fill="#D4881A" font-family="sans-serif">OROMIA</text>
+  <text x="100" y="133" text-anchor="middle" font-size="6" fill="#6B7280" font-family="sans-serif">Pure Honey</text>
+  <text x="100" y="143" text-anchor="middle" font-size="6" fill="#6B7280" font-family="sans-serif">500g</text>
+  <!-- bee -->
+  <text x="100" y="55" text-anchor="middle" font-size="20">🐝</text>
+</svg>

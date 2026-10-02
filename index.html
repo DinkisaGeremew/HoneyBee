@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HoneyBee — Earn. Grow. Thrive.</title>
+  <meta name="description" content="HoneyBee is Ethiopia's premier earn-and-shop platform. Complete tasks, buy authentic Ethiopian honey, and grow your income." />
+  <meta name="theme-color" content="#F5A623" />
+  <meta property="og:title" content="HoneyBee" />
+  <meta property="og:description" content="Earn. Grow. Thrive." />
+  <meta property="og:image" content="/images/og-cover.png" />
+  <meta property="og:type" content="website" />
+  <link rel="apple-touch-icon" href="/images/icon-192.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/auth.css" />
+  <link rel="stylesheet" href="styles/layout.css" />
+  <link rel="stylesheet" href="styles/home.css" />
+  <link rel="stylesheet" href="styles/tasks.css" />
+  <link rel="stylesheet" href="styles/products.css" />
+  <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="stylesheet" href="styles/modals.css" />
+  <link rel="stylesheet" href="styles/recharge.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN — full viewport, outside app-shell
+══════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+
+    <div class="auth-brand">
+      <span class="auth-logo-emoji" role="img" aria-label="Bee">🐝</span>
+      <span class="auth-brand-name">HoneyBee</span>
+      <span class="auth-tagline">Earn. Grow. Thrive.</span>
+    </div>
+
+    <div class="auth-tabs" role="tablist" aria-label="Auth mode">
+      <button class="auth-tab active" id="tab-register" role="tab"
+              aria-selected="true" aria-controls="form-register">Register</button>
+      <button class="auth-tab" id="tab-login" role="tab"
+              aria-selected="false" aria-controls="form-login">Login</button>
+    </div>
+
+    <!-- Register -->
+    <form class="auth-form" id="form-register" novalidate>
+      <div class="form-group">
+        <label for="reg-name">Full Name</label>
+        <input type="text" id="reg-name" placeholder="e.g. Abebe Bikila"
+               autocomplete="name" required />
+      </div>
+      <div class="form-group">
+        <label for="reg-phone">Phone Number</label>
+        <div class="phone-wrap">
+          <span class="phone-prefix">🇪🇹 +251</span>
+          <input type="tel" id="reg-phone" placeholder="9xxxxxxxx"
+                 autocomplete="tel" maxlength="10" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="reg-password">Password</label>
+        <div class="input-wrap">
+          <input type="password" id="reg-password" placeholder="Min. 6 characters"
+                 autocomplete="new-password" required />
+          <button type="button" class="toggle-pw" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="reg-referral">
+          Referral Code <span class="optional-label">(optional)</span>
+        </label>
+        <input type="text" id="reg-referral" placeholder="e.g. ABEB1234"
+               autocomplete="off" style="text-transform:uppercase" />
+      </div>
+      <div class="auth-error hidden" id="register-error" role="alert"></div>
+      <button type="submit" class="btn-primary auth-submit">🐝 Create Account</button>
+      <p class="auth-hint">Already have an account?
+        <span onclick="switchAuthTab('login')">Login</span>
+      </p>
+    </form>
+
+    <!-- Login -->
+    <form class="auth-form hidden" id="form-login" novalidate>
+      <div class="form-group">
+        <label for="login-phone">Phone Number</label>
+        <div class="phone-wrap">
+          <span class="phone-prefix">🇪🇹 +251</span>
+          <input type="tel" id="login-phone" placeholder="9xxxxxxxx"
+                 autocomplete="tel" maxlength="10" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="input-wrap">
+          <input type="password" id="login-password" placeholder="Your password"
+                 autocomplete="current-password" required />
+          <button type="button" class="toggle-pw" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <div class="auth-error hidden" id="login-error" role="alert"></div>
+      <button type="submit" class="btn-primary auth-submit">🔑 Login</button>
+      <p class="auth-hint">Don't have an account?
+        <span onclick="switchAuthTab('register')">Register</span>
+      </p>
+    </form>
+
+  </div>
+</div><!-- /auth-screen -->
+
+
+<!-- ══════════════════════════════════════
+     APP SHELL — max 480px column
+══════════════════════════════════════ -->
+<div id="app-shell">
+<div id="main-app" class="hidden">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="header-logo" aria-hidden="true">🐝</span>
+      <span class="header-title">HoneyBee</span>
+    </div>
+    <div class="header-actions">
+      <button class="notif-btn" id="notif-btn" aria-label="Open notifications">
+        🔔
+        <span class="notif-badge hidden" id="notif-badge"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification overlay + panel -->
+  <div class="notif-overlay hidden" id="notif-overlay"></div>
+  <div class="notif-panel" id="notif-panel" role="region" aria-label="Notifications">
+    <div class="notif-panel-header">
+      <h3>Notifications</h3>
+      <button class="notif-mark-all" id="notif-mark-all">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notif-list">
+      <div class="notif-empty">🔔 No notifications yet.</div>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <main class="screens" id="screens-container">
+
+    <!-- HOME -->
+    <section class="screen active" id="screen-home" aria-label="Home">
+
+      <div id="pending-deposit-banner" class="pending-deposit-banner hidden">
+        <span class="pdb-icon">⏳</span>
+        <div class="pdb-text">
+          <strong>Deposit Pending Approval</strong>
+          You have a deposit awaiting admin review. Balance will be credited once approved.
+        </div>
+      </div>
+
+      <div class="balance-card">
+        <div class="balance-card-watermark" aria-hidden="true">🐝</div>
+        <div class="balance-label">Total Balance</div>
+        <div class="balance-amount" id="balance-amount">ETB 0</div>
+        <div class="balance-sublabel">Available to withdraw</div>
+        <div class="balance-actions">
+          <button class="btn-recharge" aria-label="Recharge account">💳 Recharge</button>
+          <button class="btn-withdraw" aria-label="Withdraw funds">💸 Withdraw</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-today-earn">ETB 0</div>
+          <div class="stat-label">Today's Earning</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-tasks-done">0</div>
+          <div class="stat-label">Tasks Done</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-earned">ETB 0</div>
+          <div class="stat-label">Total Earned</div>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <div class="section-title">Recent Activity</div>
+        <div class="activity-list" id="activity-list">
+          <div class="activity-empty">📭 No activity yet. Start a task!</div>
+        </div>
+      </div>
+
+      <div class="invite-banner">
+        <div class="invite-text">
+          <h4>Invite Friends 🎁</h4>
+          <p>Earn ETB 50 for every referral</p>
+        </div>
+        <button class="btn-copy-link" id="copy-link-btn" aria-label="Copy referral link">
+          Copy Link
+        </button>
+      </div>
+
+    </section>
+
+    <!-- TASKS -->
+    <section class="screen" id="screen-tasks" aria-label="Tasks">
+      <div class="tasks-header">
+        <h2>Tasks</h2>
+        <span class="tasks-count-badge" id="tasks-count-badge">0</span>
+      </div>
+      <div class="tasks-list" id="tasks-list"></div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section class="screen" id="screen-products" aria-label="Honey Products">
+      <div class="products-header">
+        <h2>🍯 Honey Products</h2>
+        <span class="ethiopia-badge">🇪🇹 Ethiopia</span>
+      </div>
+      <div class="promo-banner">
+        <div class="promo-text">
+          <h3>Pure Ethiopian Honey 🐝</h3>
+          <p>Earn daily returns for up to 15 days 🍯</p>
+        </div>
+        <div class="promo-icon" aria-hidden="true">🍯</div>
+      </div>
+      <div class="search-bar-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="search" class="search-input" id="product-search"
+               placeholder="Search honey products…"
+               aria-label="Search honey products" />
+      </div>
+      <div class="products-grid" id="products-grid"></div>
+    </section>
+
+    <!-- PROFILE / ME -->
+    <section class="screen" id="screen-profile" aria-label="My Profile">
+
+      <div class="profile-header-card">
+        <button class="profile-edit-btn" onclick="openEditProfile()"
+                aria-label="Edit profile">✏️</button>
+        <div class="profile-avatar" aria-hidden="true">🐝</div>
+        <div class="profile-name"  id="profile-name-display">User</div>
+        <div class="profile-phone" id="profile-phone-display">+251 9xxxxxxxx</div>
+        <div class="profile-level-badge" id="profile-level-display">⭐ Level 1 — Starter</div>
+        <div class="profile-stats-row">
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-stat-balance">ETB 0</span>
+            <span class="profile-stat-label">Balance</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-stat-tasks">0</span>
+            <span class="profile-stat-label">Tasks</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat-value" id="profile-stat-referrals">0</span>
+            <span class="profile-stat-label">Referrals</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="profile-menu" aria-label="Profile menu">
+        <button class="menu-item" onclick="openRecharge()">
+          <span class="menu-item-icon">💳</span>
+          <span class="menu-item-label">Recharge Account</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openWithdraw()">
+          <span class="menu-item-icon">💸</span>
+          <span class="menu-item-label">Withdraw Funds</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="copyReferralLink()">
+          <span class="menu-item-icon">🔗</span>
+          <span class="menu-item-label">Referral Link</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openModal('modal-change-pw')">
+          <span class="menu-item-icon">🔒</span>
+          <span class="menu-item-label">Change Password</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openModal('modal-support')">
+          <span class="menu-item-icon">🎧</span>
+          <span class="menu-item-label">Help &amp; Support</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openModal('modal-terms')">
+          <span class="menu-item-icon">📄</span>
+          <span class="menu-item-label">Terms &amp; Conditions</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openMyDeposits()">
+          <span class="menu-item-icon">🧾</span>
+          <span class="menu-item-label">My Deposits</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item" onclick="openMyWithdrawals()">
+          <span class="menu-item-icon">💸</span>
+          <span class="menu-item-label">My Withdrawals</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+        <button class="menu-item danger" onclick="logout()">
+          <span class="menu-item-icon">🚪</span>
+          <span class="menu-item-label">Logout</span>
+          <span class="menu-item-arrow" aria-hidden="true">›</span>
+        </button>
+      </nav>
+
+    </section>
+
+  </main><!-- /screens -->
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item active" data-screen="home" aria-label="Home">
+      <span class="nav-icon" aria-hidden="true">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" data-screen="tasks" aria-label="Tasks">
+      <span class="nav-icon" aria-hidden="true">📋</span>
+      <span class="nav-label">Tasks</span>
+    </button>
+    <button class="nav-item" data-screen="products" aria-label="Products">
+      <span class="nav-icon" aria-hidden="true">🛒</span>
+      <span class="nav-label">Product</span>
+    </button>
+    <button class="nav-item" data-screen="profile" aria-label="My profile">
+      <span class="nav-icon" aria-hidden="true">👤</span>
+      <span class="nav-label">Me</span>
+    </button>
+  </nav>
+
+</div><!-- /main-app -->
+
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- 1. Recharge -->
+<div class="modal-overlay" id="modal-recharge"
+     role="dialog" aria-modal="true" aria-labelledby="recharge-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="recharge-title">💳 Deposit Funds</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Step 1: Choose method -->
+      <div class="recharge-step">
+        <div class="recharge-step-label">Step 1 — Choose Payment Method</div>
+        <div class="recharge-methods-grid">
+          <button class="recharge-method-card" data-method="cbe" type="button" aria-label="Pay via CBE">
+            <span class="rmc-icon">🏦</span>
+            <span class="rmc-name">CBE</span>
+            <span class="rmc-sub">Commercial Bank</span>
+          </button>
+          <button class="recharge-method-card" data-method="telebirr" type="button" aria-label="Pay via Telebirr">
+            <span class="rmc-icon">📱</span>
+            <span class="rmc-name">Telebirr</span>
+            <span class="rmc-sub">Mobile Money</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Account Details (shown after method selected) -->
+      <div id="payment-detail-box" class="hidden"></div>
+
+      <!-- Step 2: Amount -->
+      <div class="recharge-step">
+        <div class="recharge-step-label">Step 2 — Enter Amount</div>
+        <div class="preset-btns" id="recharge-presets"></div>
+        <div class="form-group" style="margin-top:10px">
+          <label for="recharge-amount">Amount (ETB)</label>
+          <div class="input-wrap amount-input-wrap">
+            <span class="amount-currency">ETB</span>
+            <input type="number" id="recharge-amount" placeholder="100" min="100" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Transaction proof -->
+      <div class="recharge-step">
+        <div class="recharge-step-label">Step 3 — Proof of Payment</div>
+        <div class="form-group">
+          <label for="recharge-txn">Transaction Reference Number</label>
+          <input type="text" id="recharge-txn"
+                 placeholder="e.g. FT2400123456 or TXN-XXXXXX" />
+        </div>
+        <div class="form-group">
+          <label>Screenshot <span class="optional-label">(optional but recommended)</span></label>
+          <label class="screenshot-upload-btn" for="recharge-screenshot" id="screenshot-label">
+            � Attach screenshot (optional)
+          </label>
+          <input type="file" id="recharge-screenshot"
+                 accept="image/*" style="display:none" />
+        </div>
+      </div>
+
+      <!-- Pending notice -->
+      <div class="deposit-pending-notice">
+        <span>⏳</span>
+        <span>After submitting, your deposit will be reviewed and credited within <strong>1–24 hours</strong>.</span>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="recharge-confirm-btn">📤 Submit Deposit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Withdraw -->
+<div class="modal-overlay" id="modal-withdraw"
+     role="dialog" aria-modal="true" aria-labelledby="withdraw-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="withdraw-title">💸 Withdraw Funds</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="balance-info-row">
+        <span class="balance-info-label">Available Balance</span>
+        <span class="balance-info-value" id="withdraw-balance-display">ETB 0</span>
+      </div>
+      <div>
+        <span class="payment-method-label">Quick Amount</span>
+        <div class="preset-btns" id="withdraw-presets"></div>
+      </div>
+      <div class="form-group">
+        <label for="withdraw-amount">Amount (ETB)</label>
+        <div class="input-wrap amount-input-wrap">
+          <span class="amount-currency">ETB</span>
+          <input type="number" id="withdraw-amount" placeholder="500" min="500" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="withdraw-method">Withdrawal Method</label>
+        <select class="payment-select" id="withdraw-method">
+          <option value="" disabled selected>Select method</option>
+          <option value="cbe">🏦 CBE (Commercial Bank of Ethiopia)</option>
+          <option value="telebirr">📱 Telebirr</option>
+          <option value="amhara">🏦 Amhara Bank</option>
+          <option value="mobile">📲 Mobile Money</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="withdraw-account">Account Number</label>
+        <input type="text" id="withdraw-account"
+               placeholder="Enter account or phone number" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="withdraw-confirm-btn">✅ Confirm Withdrawal</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Product Detail -->
+<div class="modal-overlay" id="modal-product"
+     role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="product-modal-title">Product</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="product-detail-img">
+        <img id="product-detail-img" src="" alt="" />
+        <div id="product-detail-emoji"
+             style="display:none;font-size:64px;width:100%;height:100%;
+                    align-items:center;justify-content:center;"></div>
+        <div class="product-detail-badge" id="product-detail-badge"></div>
+      </div>
+      <div class="product-detail-info">
+        <div class="product-detail-name"   id="product-detail-name"></div>
+        <div class="product-detail-region" id="product-detail-region"></div>
+        <div class="product-detail-desc"   id="product-detail-desc"></div>
+        <div class="product-detail-row">
+          <span class="product-detail-row-label">Weight</span>
+          <span class="product-detail-row-value" id="product-detail-weight"></span>
+        </div>
+        <div class="product-detail-row">
+          <span class="product-detail-row-label">Price</span>
+          <span class="product-detail-price" id="product-detail-price"></span>
+        </div>
+        <div class="product-detail-row">
+          <span class="product-detail-row-label">Cashback</span>
+          <span class="product-detail-cashback" id="product-detail-cashback"></span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="product-buy-btn">🛒 Buy Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Task Detail -->
+<div class="modal-overlay" id="modal-task"
+     role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="task-modal-title">Task</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="task-detail-info">
+        <div id="task-detail-icon"
+             style="font-size:44px;text-align:center;line-height:1;margin-bottom:4px;">📋</div>
+        <div id="task-detail-title"
+             style="font-size:18px;font-weight:800;text-align:center;
+                    color:var(--bee-black);line-height:1.3;"></div>
+        <p id="task-detail-desc"
+           style="font-size:13px;color:var(--bee-gray);line-height:1.65;
+                  text-align:center;margin-top:4px;"></p>
+        <div class="task-detail-row">
+          <span>🏆 Reward</span>
+          <strong id="task-detail-reward"></strong>
+        </div>
+        <div class="task-detail-row">
+          <span>⏱ Duration</span>
+          <strong id="task-detail-duration"></strong>
+        </div>
+      </div>
+      <div class="task-progress-wrap hidden" id="task-progress-wrap">
+        <div class="task-progress-label">
+          <span>Progress</span>
+          <span id="task-progress-pct">0%</span>
+        </div>
+        <div class="task-progress-bar">
+          <div class="task-progress-fill" id="task-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="task-start-btn">▶️ Start Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Edit Profile -->
+<div class="modal-overlay" id="modal-edit-profile"
+     role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="edit-profile-title">✏️ Edit Profile</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="edit-name-input">Full Name</label>
+        <input type="text" id="edit-name-input"
+               placeholder="Your full name" autocomplete="name" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="edit-profile-save">✅ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Change Password -->
+<div class="modal-overlay" id="modal-change-pw"
+     role="dialog" aria-modal="true" aria-labelledby="change-pw-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="change-pw-title">🔒 Change Password</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="current-pw">Current Password</label>
+        <div class="input-wrap">
+          <input type="password" id="current-pw"
+                 placeholder="Enter current password"
+                 autocomplete="current-password" />
+          <button type="button" class="toggle-pw" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="new-pw">New Password</label>
+        <div class="input-wrap">
+          <input type="password" id="new-pw"
+                 placeholder="Min. 6 characters"
+                 autocomplete="new-password" />
+          <button type="button" class="toggle-pw" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="confirm-pw">Confirm New Password</label>
+        <div class="input-wrap">
+          <input type="password" id="confirm-pw"
+                 placeholder="Re-enter new password"
+                 autocomplete="new-password" />
+          <button type="button" class="toggle-pw" aria-label="Show password">👁️</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="change-pw-save">🔒 Change Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Help & Support -->
+<div class="modal-overlay" id="modal-support"
+     role="dialog" aria-modal="true" aria-labelledby="support-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="support-title">🎧 Help &amp; Support</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="support-item">
+        <div class="support-icon">✈️</div>
+        <div>
+          <div class="support-label">Telegram Support</div>
+          <a class="support-value support-link"
+             href="https://t.me/Nelson_Jem"
+             target="_blank" rel="noopener noreferrer">
+            @Nelson_Jem
+          </a>
+        </div>
+      </div>
+      <div class="support-item">
+        <div class="support-icon">💬</div>
+        <div>
+          <div class="support-label">Available Hours</div>
+          <div class="support-value">Mon–Sat, 9AM – 8PM</div>
+        </div>
+      </div>
+      <div class="support-item">
+        <div class="support-icon">⏱️</div>
+        <div>
+          <div class="support-label">Response Time</div>
+          <div class="support-value">Within 24 hours</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;text-align:center;">
+        <a href="https://t.me/Nelson_Jem"
+           target="_blank" rel="noopener noreferrer"
+           class="btn-primary"
+           style="display:inline-flex;text-decoration:none;width:auto;padding:13px 28px;">
+          ✈️ Chat on Telegram
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Terms & Conditions -->
+<div class="modal-overlay" id="modal-terms"
+     role="dialog" aria-modal="true" aria-labelledby="terms-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="terms-title">📄 Terms &amp; Conditions</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="terms-body">
+        <div class="terms-section">
+          <h4>1. Acceptance of Terms</h4>
+          <p>By registering and using HoneyBee, you agree to be bound by these Terms. If you do not agree, please do not use the platform.</p>
+        </div>
+        <div class="terms-section">
+          <h4>2. Eligibility</h4>
+          <p>You must be at least 18 years of age to register and use HoneyBee.</p>
+        </div>
+        <div class="terms-section">
+          <h4>3. Account Responsibility</h4>
+          <p>You are responsible for maintaining the security of your account credentials. HoneyBee is not liable for unauthorized access due to your negligence.</p>
+        </div>
+        <div class="terms-section">
+          <h4>4. Earnings &amp; Withdrawals</h4>
+          <p>Minimum withdrawal is ETB 500. Withdrawals are processed within 1–3 business days.</p>
+        </div>
+        <div class="terms-section">
+          <h4>5. Prohibited Activities</h4>
+          <p>Creating multiple accounts, using bots, or manipulating the system is prohibited and will result in permanent suspension.</p>
+        </div>
+        <div class="terms-section">
+          <h4>6. Referral Program</h4>
+          <p>Referral bonuses (ETB 50) are credited on successful registration. Self-referrals are not credited.</p>
+        </div>
+        <div class="terms-section">
+          <h4>7. Privacy</h4>
+          <p>Your phone number is used for identification only and will not be shared with third parties without consent.</p>
+        </div>
+        <div class="terms-section">
+          <h4>8. Changes to Terms</h4>
+          <p>HoneyBee reserves the right to modify these terms at any time. Continued use constitutes acceptance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Deposits Modal -->
+<div class="modal-overlay" id="modal-my-deposits"
+     role="dialog" aria-modal="true" aria-labelledby="my-deposits-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="my-deposits-title">🧾 My Deposits</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="my-deposits-list">
+      <div style="text-align:center;padding:24px;color:var(--bee-gray);font-size:13px;">
+        No deposits yet.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Withdrawals Modal -->
+<div class="modal-overlay" id="modal-my-withdrawals"
+     role="dialog" aria-modal="true" aria-labelledby="my-withdrawals-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="my-withdrawals-title">💸 My Withdrawals</h2>
+      <button class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="my-withdrawals-list">
+      <div style="text-align:center;padding:24px;color:var(--bee-gray);font-size:13px;">
+        No withdrawals yet.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirm-dialog"
+     role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="confirm-box">
+    <span class="confirm-icon" id="confirm-icon">🚪</span>
+    <div class="confirm-title"   id="confirm-title">Confirm</div>
+    <div class="confirm-message" id="confirm-message">Are you sure?</div>
+    <div class="confirm-actions">
+      <button class="btn-confirm-cancel" id="confirm-cancel-btn">Cancel</button>
+      <button class="btn-confirm-ok"     id="confirm-ok-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+</div><!-- /app-shell -->
+
+<!-- Scripts — load order matters -->
+<script src="js/utils.js"></script>
+<script src="js/email.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/wallet.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/products.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

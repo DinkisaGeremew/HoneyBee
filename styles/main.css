@@ -1,0 +1,261 @@
+/* ============================================
+   HONEYBEE — main.css
+   Variables, Reset, Utilities
+   ============================================ */
+
+:root {
+  --honey: #F5A623;
+  --honey-dark: #D4881A;
+  --honey-light: #FFF3DC;
+  --bee-black: #1A1A1A;
+  --bee-gray: #6B7280;
+  --bee-light: #F9FAFB;
+  --white: #FFFFFF;
+  --green: #22C55E;
+  --red: #EF4444;
+  --blue: #3B82F6;
+  --radius: 14px;
+  --shadow: 0 4px 20px rgba(0,0,0,.08);
+  --nav-h: 68px;
+  --header-h: 56px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f0f0f0;
+  color: var(--bee-black);
+  min-height: 100vh;
+  /* Centre the 480px app column on desktop */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active { transform: scale(.98); }
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: none; }
+
+/* ═══════════════════════════════════
+   APP SHELL — the 480px column
+═══════════════════════════════════ */
+#app-shell {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  background: var(--bee-light);
+  position: relative;   /* positioning context for auth-screen */
+  box-shadow: 0 0 40px rgba(0,0,0,.15);
+  /* NO overflow:hidden — that was clipping the auth gradient */
+}
+
+/* ── Utilities ── */
+.hidden { display: none !important; }
+
+/* ── Buttons ── */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--honey), var(--honey-dark));
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+}
+.btn-primary:hover  { opacity: .92; }
+.btn-primary:active { transform: scale(.98); }
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 13px 20px;
+  background: var(--white);
+  color: var(--honey-dark);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 2px solid var(--honey);
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.btn-secondary:hover  { background: var(--honey-light); }
+.btn-secondary:active { transform: scale(.98); }
+
+/* ── Form Groups ── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bee-black);
+  display: block;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--bee-black);
+  background: var(--white);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px rgba(245,166,35,.15);
+}
+
+/* ── Password input wrapper ── */
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 12px 44px 12px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--bee-black);
+  background: var(--white);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none;
+}
+
+.input-wrap input:focus {
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px rgba(245,166,35,.15);
+}
+
+.toggle-pw {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--bee-gray);
+  line-height: 1;
+  padding: 4px;
+}
+
+/* ── Phone prefix ── */
+.phone-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.phone-prefix {
+  padding: 12px 12px;
+  background: var(--honey-light);
+  border: 1.5px solid #E5E7EB;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--honey-dark);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.phone-wrap input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--bee-black);
+  background: var(--white);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.phone-wrap input:focus {
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px rgba(245,166,35,.15);
+}
+
+/* ── Optional label ── */
+.optional-label {
+  font-size: 11px;
+  color: var(--bee-gray);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* ── Section title ── */
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bee-black);
+  margin-bottom: 12px;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
+
+/* ── Focus ── */
+:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 2px;
+}

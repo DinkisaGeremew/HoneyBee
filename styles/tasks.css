@@ -1,0 +1,321 @@
+/* ============================================
+   HONEYBEE — tasks.css
+   Task Cards, Filter Tabs, Progress Bar
+   ============================================ */
+
+/* ══ Tasks Header ══ */
+.tasks-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tasks-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--bee-black);
+}
+
+.tasks-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  background: var(--honey-light);
+  color: var(--honey-dark);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 9999px;
+}
+
+/* ══ Filter Tabs ══ */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+
+.filter-tab {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bee-gray);
+  background: var(--white);
+  border: 1.5px solid #E5E7EB;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filter-tab:hover:not(.active) {
+  border-color: var(--honey);
+  color: var(--honey-dark);
+}
+
+.filter-tab.active {
+  background: var(--honey);
+  color: var(--white);
+  border-color: var(--honey);
+}
+
+/* ══ Task List ══ */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ══ Task Card ══ */
+.task-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+  border: 1.5px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.1);
+  border-color: var(--honey-light);
+}
+
+.task-card:active { transform: scale(.99); }
+
+.task-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.task-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bee-black);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-reward {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-desc {
+  font-size: 13px;
+  color: var(--bee-gray);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.task-duration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--bee-gray);
+  font-weight: 500;
+}
+
+.task-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.task-status.available { background: #DBEAFE; color: #1D4ED8; }
+.task-status.completed { background: #DCFCE7; color: #15803D; }
+
+/* ══ Empty State ══ */
+.tasks-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--bee-gray);
+}
+
+.tasks-empty-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.tasks-empty p {
+  font-size: 14px;
+}
+
+/* ══ Task Detail (inside modal) ══ */
+.task-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.task-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bee-light);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--bee-gray);
+}
+
+.task-detail-row strong {
+  color: var(--bee-black);
+  font-weight: 700;
+}
+
+/* ══ Progress Bar ══ */
+.task-progress-wrap {
+  margin-top: 4px;
+}
+
+.task-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bee-gray);
+  margin-bottom: 8px;
+}
+
+.task-progress-bar {
+  height: 10px;
+  background: #F3F4F6;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.task-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--honey), var(--honey-dark));
+  border-radius: 9999px;
+  width: 0%;
+  transition: width .08s linear;
+}
+
+/* ══════════════════════════════════════
+   HONEY DAILY RETURN TASKS
+══════════════════════════════════════ */
+
+/* Section header separating honey tasks from regular tasks */
+.honey-tasks-section-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--honey-dark);
+  letter-spacing: .3px;
+  padding: 4px 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Honey task card — amber left border accent */
+.honey-task-card {
+  border-left: 4px solid var(--honey);
+}
+
+/* Pulsing glow when ready to claim */
+.honey-task-card.claimable {
+  border-color: #F5A623;
+  box-shadow: 0 0 0 2px rgba(245,166,35,.18), var(--shadow);
+  animation: honey-pulse 2s ease-in-out infinite;
+}
+
+@keyframes honey-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(245,166,35,.18), var(--shadow); }
+  50%       { box-shadow: 0 0 0 5px rgba(245,166,35,.28), var(--shadow); }
+}
+
+/* Progress bar inside honey task card */
+.honey-progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.honey-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #F3F4F6;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.honey-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--honey), var(--honey-dark));
+  border-radius: 9999px;
+  transition: width .4s ease;
+}
+
+.honey-progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bee-gray);
+  white-space: nowrap;
+}
+
+/* Blocked (Sunday) status */
+.task-status.blocked {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Pending (cooldown) status */
+.task-status.pending {
+  background: #FEF9C3;
+  color: #854D0E;
+}
+
+/* Owned badge on product cards */
+.product-owned-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(21,128,61,.85);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+}

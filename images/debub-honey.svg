@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="jar4" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#F3E5F5"/>
+      <stop offset="100%" stop-color="#6A1B9A"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" fill="#F8F0FC" rx="16"/>
+  <ellipse cx="100" cy="155" rx="48" ry="8" fill="#6A1B9A" opacity=".2"/>
+  <path d="M62 90 Q58 160 100 165 Q142 160 138 90Z" fill="url(#jar4)" stroke="#6A1B9A" stroke-width="2"/>
+  <rect x="78" y="72" width="44" height="22" rx="6" fill="#7B1FA2" stroke="#6A1B9A" stroke-width="2"/>
+  <rect x="72" y="64" width="56" height="14" rx="7" fill="#4A148C"/>
+  <path d="M95 165 Q93 178 97 182 Q101 185 105 182 Q109 178 107 165" fill="#7B1FA2"/>
+  <rect x="72" y="108" width="56" height="34" rx="6" fill="white" opacity=".7"/>
+  <text x="100" y="122" text-anchor="middle" font-size="7" font-weight="700" fill="#4A148C" font-family="sans-serif">DEBUB</text>
+  <text x="100" y="133" text-anchor="middle" font-size="6" fill="#6B7280" font-family="sans-serif">Premium</text>
+  <text x="100" y="143" text-anchor="middle" font-size="6" fill="#6B7280" font-family="sans-serif">1kg</text>
+  <text x="100" y="55" text-anchor="middle" font-size="20">👑</text>
+</svg>

@@ -1,0 +1,288 @@
+/* ============================================
+   HONEYBEE — layout.css
+   Header, Bottom Nav, Screen Container
+   ============================================ */
+
+/* ── Main App Wrapper ── */
+#main-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bee-light);
+  position: relative;
+}
+
+/* ── Header ── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-shadow: 0 1px 0 #F3F4F6, 0 2px 8px rgba(0,0,0,.05);
+  flex-shrink: 0;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-logo {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--honey-dark);
+  letter-spacing: -.3px;
+}
+
+/* ── Notification Bell ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notif-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bee-light);
+  font-size: 18px;
+  cursor: pointer;
+  border: none;
+  transition: background .15s;
+}
+
+.notif-btn:hover { background: var(--honey-light); }
+
+.notif-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  background: var(--red);
+  color: var(--white);
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 2px solid var(--white);
+  line-height: 1;
+}
+
+/* ── Notification Panel ── */
+.notif-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 149;
+  background: transparent;
+}
+
+.notif-panel {
+  position: absolute;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  z-index: 150;
+  background: var(--white);
+  border-bottom: 1px solid #F3F4F6;
+  box-shadow: 0 6px 20px rgba(0,0,0,.1);
+  max-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: max-height .28s ease;
+  pointer-events: none;
+}
+
+.notif-panel.open {
+  max-height: 360px;
+  pointer-events: all;
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #F3F4F6;
+  flex-shrink: 0;
+}
+
+.notif-panel-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bee-black);
+}
+
+.notif-mark-all {
+  font-size: 12px;
+  color: var(--honey-dark);
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+}
+
+.notif-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F9FAFB;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notif-item.unread { background: #FFFBEB; }
+
+.notif-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notif-content { flex: 1; min-width: 0; }
+
+.notif-text {
+  font-size: 13px;
+  color: var(--bee-black);
+  line-height: 1.4;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: var(--bee-gray);
+  margin-top: 3px;
+}
+
+.notif-empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--bee-gray);
+}
+
+/* ── Screens Scroll Area ── */
+.screens {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--nav-h) + 12px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen {
+  display: none;
+  padding: 16px;
+  animation: screenFadeIn .2s ease;
+}
+
+.screen.active { display: block; }
+
+@keyframes screenFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Bottom Navigation ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: var(--nav-h);
+  background: var(--white);
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid #F3F4F6;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.07);
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  position: relative;
+  transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:hover { background: var(--honey-light); }
+
+.nav-icon {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform .15s;
+}
+
+.nav-item.active .nav-icon { transform: scale(1.1); }
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--bee-gray);
+  transition: color .15s;
+}
+
+.nav-item.active .nav-label { color: var(--honey-dark); }
+
+/* Active underline indicator */
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  background: var(--honey);
+  border-radius: 3px 3px 0 0;
+}
+
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--bee-black);
+}
