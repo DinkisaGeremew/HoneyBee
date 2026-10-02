@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: honeybee-email-server
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: GMAIL_USER
+        value: dinkisa1212@gmail.com
+      - key: GMAIL_PASS
+        sync: false        # you will enter this manually in Render dashboard
+      - key: ADMIN_EMAIL
+        value: dinkisa1212@gmail.com
+      - key: ADMIN_PANEL_URL
+        value: https://dinkisageremew.github.io/HoneyBee/hb-admin-panel.html
+      - key: ALLOWED_ORIGIN
+        value: https://dinkisageremew.github.io
+      - key: PORT
+        value: 3001
