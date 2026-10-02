@@ -1,7 +1,6 @@
 /* ============================================
    HoneyBee — Email Notification Server
-   Node.js + Express + Brevo SMTP
-   (Brevo port 587 works on Render free tier)
+   Node.js + Express + Gmail SMTP port 465
    ============================================ */
 
 require('dotenv').config();
@@ -15,26 +14,29 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
 
-/* ── Brevo SMTP transporter ── */
+/* ── Gmail SMTP on port 465 (SSL) ── */
 const transporter = nodemailer.createTransport({
-  host:   'smtp-relay.brevo.com',
-  port:   587,
-  secure: false,
+  host:   'smtp.gmail.com',
+  port:   465,
+  secure: true,          // SSL on 465
   auth: {
-    user: process.env.BREVO_USER,  // your Brevo login email
-    pass: process.env.BREVO_PASS   // your Brevo SMTP key (not login password)
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
 transporter.verify((err) => {
   if (err) {
-    console.error('❌ Brevo SMTP failed:', err.message);
+    console.error('❌ Gmail SMTP failed:', err.message);
   } else {
-    console.log('✅ Brevo SMTP ready — emails → ' + process.env.ADMIN_EMAIL);
+    console.log('✅ Gmail SMTP ready — emails → ' + process.env.ADMIN_EMAIL);
   }
 });
 
-/* ── HTML template ── */
+/* ── HTML email template ── */
 function buildEmailHtml(data) {
   const colors = {
     '🐝 New User Registration':               '#F5A623',
@@ -42,6 +44,7 @@ function buildEmailHtml(data) {
     '💸 New Withdrawal Request':              '#EF4444'
   };
   const accent = colors[data.event_type] || '#F5A623';
+
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/></head>
 <body style="margin:0;padding:0;background:#F3F4F6;font-family:'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
@@ -102,13 +105,17 @@ app.post('/send-email', async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from:    `"HoneyBee 🐝" <${process.env.BREVO_USER}>`,
+      from:    `"HoneyBee 🐝" <${process.env.GMAIL_USER}>`,
       to:      process.env.ADMIN_EMAIL,
       subject: `HoneyBee — ${event_type}`,
-      html:    buildEmailHtml({ event_type, user_name, user_phone,
-                                detail_label: detail_label||'', detail_value: detail_value||'',
-                                extra_label:  extra_label||'',  extra_value:  extra_value||'',
-                                timestamp })
+      html:    buildEmailHtml({
+        event_type, user_name, user_phone,
+        detail_label: detail_label || '',
+        detail_value: detail_value || '',
+        extra_label:  extra_label  || '',
+        extra_value:  extra_value  || '',
+        timestamp
+      })
     });
     console.log('✅ Email sent:', event_type, 'for', user_name);
     res.json({ ok: true });
@@ -123,5 +130,5 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'HoneyBee Email 
 
 app.listen(PORT, () => {
   console.log(`🐝 HoneyBee email server on port ${PORT}`);
-  console.log(`📧 Admin email: ${process.env.ADMIN_EMAIL || 'not set'}`);
+  console.log(`📧 Admin: ${process.env.ADMIN_EMAIL || 'not set'}`);
 });
