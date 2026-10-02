@@ -100,12 +100,18 @@
 
     /* ── Sidebar overlay (mobile) ── */
     #sidebar-overlay {
-      display: none;
+      display: block;
       position: fixed; inset: 0;
       background: rgba(0,0,0,.5);
       z-index: 198;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .28s ease;
     }
-    #sidebar-overlay.open { display: block; }
+    #sidebar-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
     /* ── Sidebar must be above overlay ── */
     #admin-sidebar { z-index: 200; }
@@ -608,6 +614,8 @@ const ADMIN_CUSTOM_PASS_KEY = 'hb_admin_custom_pass';
 const ADMIN_USER         = 'admin';
 const ADMIN_PASS_DEFAULT = 'honeybee2024';
 
+document.addEventListener('DOMContentLoaded', function() {
+
 function getAdminPass() {
   return sessionStorage.getItem(ADMIN_CUSTOM_PASS_KEY) || ADMIN_PASS_DEFAULT;
 }
@@ -1008,7 +1016,8 @@ function renderWithdrawals() {
 
   list.innerHTML = withdrawals.map(w => `
     <div class="card deposit-card ${w.status === 'pending' ? 'pending' : 'approved'}" style="border-left-color:${w.status === 'pending' ? '#F59E0B' : '#22C55E'};">
-      <div class="deposit-header">
+      <div class="deposit-header"> .,/mc"
+        
         <div>
           <div class="deposit-user">${escA(w.userName)}</div>
           <div class="deposit-phone">+251 ${escA(w.userPhone)}</div>
@@ -1281,6 +1290,8 @@ function showMsg(el, text, type) {
 setInterval(() => {
   if (sessionStorage.getItem(ADMIN_AUTH) === '1') refreshStats();
 }, 30000);
+
+}); // end DOMContentLoaded
 </script>
 </body>
 </html>
