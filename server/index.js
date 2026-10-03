@@ -1,52 +1,19 @@
 /* ============================================
    HoneyBee — Email Notification Server
-   Node.js + Express + Gmail via SMTP
+   Node.js + Express + Resend API (HTTPS)
+   No SMTP needed — works on Render free tier
    ============================================ */
 
 require('dotenv').config();
 const express    = require('express');
-const nodemailer = require('nodemailer');
 const cors       = require('cors');
+const https      = require('https');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
-
-/* ══════════════════════════════════════
-   Build transporter — tries port 587 first,
-   falls back gracefully. All timeouts set
-   so the request never hangs indefinitely.
-══════════════════════════════════════ */
-function makeTransporter() {
-  return nodemailer.createTransport({
-    host:   'smtp.gmail.com',
-    port:   465,
-    secure: true,            // true for port 465, false for 587
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS
-    },
-    tls:              { rejectUnauthorized: false },
-    connectionTimeout: 8000,   // 8s to connect
-    greetingTimeout:   8000,   // 8s for EHLO
-    socketTimeout:     10000,  // 10s per socket read
-    pool:              false
-  });
-}
-
-let transporter = makeTransporter();
-
-transporter.verify((err) => {
-  if (err) {
-    console.error('❌ SMTP verify failed:', err.message);
-    console.log('Rebuilding transporter…');
-    transporter = makeTransporter();
-  } else {
-    console.log('✅ Gmail SMTP ready — emails → ' + process.env.ADMIN_EMAIL);
-  }
-});
 
 /* ── HTML email template ── */
 function buildEmailHtml(data) {
@@ -71,7 +38,7 @@ function buildEmailHtml(data) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:16px;">
       <tr><td style="font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;padding-bottom:4px;">User</td></tr>
       <tr><td style="font-size:16px;font-weight:800;color:#1A1A1A;">${data.user_name}</td></tr>
-      <tr><td style="font-size:13px;color:#6B7280;padding-top:2px;">+251 ${data.user_phone}</td></tr>
+      <tr><td style="font-size:13px;color:#6B7280;padding-top:2px;">${data.user_phone}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="padding:10px 0;border-bottom:1px solid #F3F4F6;">
@@ -103,14 +70,42 @@ function buildEmailHtml(data) {
 </body></html>`;
 }
 
-/* ── Wrap sendMail with a hard 15s timeout ── */
-function sendWithTimeout(mailOptions) {
+/* ── Send email via Resend API (HTTPS, no SMTP) ── */
+function sendViaResend(from, to, subject, html) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('sendMail timeout after 15s')), 15000);
-    transporter.sendMail(mailOptions, (err, info) => {
-      clearTimeout(timer);
-      if (err) reject(err); else resolve(info);
+    const postData = JSON.stringify({
+      from:    from,
+      to:      to,
+      subject: subject,
+      html:    html
     });
+
+    const options = {
+      hostname: 'api.resend.com',
+      path:     '/emails',
+      method:   'POST',
+      headers:  {
+        'Authorization':  `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve(JSON.parse(body));
+        } else {
+          reject(new Error(`Resend API error ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Resend API timeout')); });
+    req.write(postData);
+    req.end();
   });
 }
 
@@ -118,7 +113,6 @@ function sendWithTimeout(mailOptions) {
    POST /send-email
 ══════════════════════════════════════ */
 app.post('/send-email', async (req, res) => {
-  // Set response timeout so the request never hangs for the caller
   res.setTimeout(20000, () => {
     if (!res.headersSent) res.status(504).json({ ok: false, error: 'Request timed out' });
   });
@@ -133,41 +127,43 @@ app.post('/send-email', async (req, res) => {
     month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'
   });
 
-  const mailOptions = {
-    from:    '"HoneyBee Admin" <' + process.env.GMAIL_USER + '>',
-    to:      process.env.ADMIN_EMAIL,
-    subject: 'HoneyBee — ' + event_type,
-    html:    buildEmailHtml({
-      event_type, user_name, user_phone,
-      detail_label: detail_label || '',
-      detail_value: detail_value || '',
-      extra_label:  extra_label  || '',
-      extra_value:  extra_value  || '',
-      timestamp
-    })
-  };
+  /* Resend requires a verified domain or uses onboarding@resend.dev
+     When you verify your domain in Resend, switch to your Gmail address */
+  const from    = process.env.RESEND_FROM || 'HoneyBee Admin <onboarding@resend.dev>';
+  const to      = process.env.ADMIN_EMAIL;
+  const subject = 'HoneyBee — ' + event_type;
+  const html    = buildEmailHtml({
+    event_type, user_name, user_phone,
+    detail_label: detail_label || '',
+    detail_value: detail_value || '',
+    extra_label:  extra_label  || '',
+    extra_value:  extra_value  || '',
+    timestamp
+  });
 
   try {
-    await sendWithTimeout(mailOptions);
+    await sendViaResend(from, to, subject, html);
     console.log('✅ Email sent:', event_type, 'for', user_name);
     if (!res.headersSent) res.json({ ok: true });
   } catch (err) {
     console.error('❌ Email error:', err.message);
-    // Rebuild transporter for next request
-    transporter = makeTransporter();
     if (!res.headersSent) res.status(500).json({ ok: false, error: err.message });
   }
 });
 
 /* ── Health check ── */
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'HoneyBee Email Server', admin: process.env.ADMIN_EMAIL || 'not set' });
+  res.json({
+    ok: true,
+    service: 'HoneyBee Email Server (Resend)',
+    admin: process.env.ADMIN_EMAIL || 'not set',
+    hasApiKey: !!process.env.RESEND_API_KEY
+  });
 });
 
 /* ── Self-ping every 13 minutes to prevent Render sleep ── */
 const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://honeybee-email-server.onrender.com';
 setInterval(() => {
-  const https = require('https');
   https.get(SELF_URL + '/health', r => {
     console.log('🔄 Keep-alive ping:', r.statusCode);
   }).on('error', e => console.warn('Keep-alive failed:', e.message));
@@ -176,5 +172,5 @@ setInterval(() => {
 app.listen(PORT, () => {
   console.log('HoneyBee email server on port', PORT);
   console.log('Admin email:', process.env.ADMIN_EMAIL || 'NOT SET');
-  console.log('Gmail user:', process.env.GMAIL_USER || 'NOT SET');
+  console.log('Resend API key set:', !!process.env.RESEND_API_KEY);
 });
