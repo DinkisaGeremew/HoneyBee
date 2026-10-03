@@ -42,6 +42,15 @@ function initAuth() {
     });
   });
 
+  /* ── Enforce 9-digit phone input ── */
+  const regPhoneInput = document.getElementById('reg-phone');
+  if (regPhoneInput) {
+    regPhoneInput.addEventListener('input', () => {
+      // Strip non-digits and cap at 9
+      regPhoneInput.value = regPhoneInput.value.replace(/\D/g, '').slice(0, 9);
+    });
+  }
+
   /* ── Register ── */
   formRegister.addEventListener('submit', e => {
     e.preventDefault();
@@ -52,10 +61,13 @@ function initAuth() {
     const password = document.getElementById('reg-password').value;
     const referral = document.getElementById('reg-referral').value.trim().toUpperCase();
 
+    console.log('HoneyBee: Registration input → phone:', phone, '(type:', typeof phone, ')');
+
     if (!name)               return authError('register-error', 'Please enter your full name');
     if (!phone)              return authError('register-error', 'Please enter your phone number');
     if (phone.length !== 9)  return authError('register-error', 'Phone number must be exactly 9 digits (e.g. 912345678)');
     if (!/^[0-9]{9}$/.test(phone)) return authError('register-error', 'Phone number must contain digits only');
+    if (!phone.startsWith('9')) return authError('register-error', 'Phone number must start with 9 (e.g. 912345678)');
     if (password.length < 6) return authError('register-error', 'Password must be at least 6 characters');
 
     // Check duplicate phone in persistent user registry
@@ -73,7 +85,7 @@ function initAuth() {
     const newUser = {
       id:           generateId(),
       name,
-      phone,
+      phone:        String(phone),   // force string so Firestore doesn't convert to number
       passwordHash: simpleHash(password),
       referralCode: generateReferralCode(name),
       referredBy,
@@ -82,6 +94,15 @@ function initAuth() {
 
     // Save to persistent user registry
     registerUser(newUser);
+    console.log('HoneyBee: User registered →', { id: newUser.id, phone: newUser.phone, phoneType: typeof newUser.phone });
+
+    // Verify the user is actually in the cache now
+    const verify = findUserByPhone(phone);
+    if (!verify) {
+      console.error('HoneyBee: CRITICAL — user not found in cache immediately after registration!');
+    } else {
+      console.log('HoneyBee: Verified user in cache:', { id: verify.id, phone: verify.phone, phoneType: typeof verify.phone });
+    }
 
     // Seed the new user's personal data store
     const initialData = {
@@ -140,7 +161,11 @@ function initAuth() {
     if (!password) return authError('login-error', 'Please enter your password');
 
     const user = findUserByPhone(phone);
-    if (!user) return authError('login-error', 'Phone number not registered. Please sign up first.');
+    if (!user) {
+      console.error('HoneyBee: Login failed — phone not found:', phone);
+      console.log('HoneyBee: Users in cache:', loadUsers().map(u => ({ id: u.id, phone: u.phone })));
+      return authError('login-error', 'Phone number not registered. Please sign up first.');
+    }
 
     if (user.deactivated) {
       return authError('login-error', 'Your account has been deactivated. Please contact support via Telegram @Nelson_Jem.');

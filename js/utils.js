@@ -8,6 +8,7 @@
    before this file. _db is set up in initFirebase(). */
 
 let _db = null;
+let _firebaseReady = false;
 
 const _fbConfig = {
   apiKey:            'AIzaSyDuTk4nzrJ5WYdJOIQnLZx14bjXjohnJOc',
@@ -41,16 +42,36 @@ function setSessionUserId(userId) {
 let _usersCache    = [];   // [{id, name, phone, passwordHash, referralCode, ...}]
 let _userDataCache = {};   // {userId: {balance, deposits, withdrawals, ...}}
 
-/* ── Write helpers (fire-and-forget) ── */
+/* ── Write helpers (fire-and-forget with error surfacing) ── */
+let _writeErrorShown = false;
+
 function _dbSetUser(userData) {
-  if (!_db) return;
+  if (!_db || !_firebaseReady) return;
   const { id, ...rest } = userData;
-  firebase.firestore().collection('users').doc(id).set(rest).catch(e => console.warn('DB write user:', e));
+  firebase.firestore().collection('users').doc(id).set(rest)
+    .catch(e => {
+      console.error('DB write user failed:', e);
+      _notifyWriteError();
+    });
 }
 
 function _dbSetUserData(userId, data) {
-  if (!_db) return;
-  firebase.firestore().collection('userData').doc(userId).set(data).catch(e => console.warn('DB write userData:', e));
+  if (!_db || !_firebaseReady) return;
+  firebase.firestore().collection('userData').doc(userId).set(data)
+    .catch(e => {
+      console.error('DB write userData failed:', e);
+      _notifyWriteError();
+    });
+}
+
+function _notifyWriteError() {
+  if (_writeErrorShown) return;
+  _writeErrorShown = true;
+  setTimeout(() => {
+    if (typeof toast === 'function') {
+      toast('⚠️ Data sync failed. Your changes may not be saved.', 'error');
+    }
+  }, 200);
 }
 
 /* ══════════════════════════════════════
@@ -65,7 +86,8 @@ function registerUser(userData) {
 }
 
 function findUserByPhone(phone) {
-  return _usersCache.find(u => u.phone === phone) || null;
+  const target = String(phone);
+  return _usersCache.find(u => String(u.phone) === target) || null;
 }
 
 function updateUser(userId, changes) {
@@ -144,14 +166,18 @@ async function initFirebase() {
     const usersSnap = await _db.collection('users').get();
     _usersCache = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    /* Load current user's data */
-    const uid = getSessionUserId();
-    if (uid) {
-      const udSnap = await _db.collection('userData').doc(uid).get();
-      _userDataCache[uid] = udSnap.exists ? udSnap.data() : { ...DEFAULT_USER_DATA };
-    }
+    /* Load ALL users' data so referrals and cross-user updates work
+       correctly.  Without this, loadUserData() returns defaults for
+       any user whose data wasn't loaded — causing data loss when a
+       referral bonus or cross-user write overwrites real data. */
+    const userDataSnap = await _db.collection('userData').get();
+    userDataSnap.forEach(d => {
+      _userDataCache[d.id] = d.data();
+    });
 
-    console.log('HoneyBee: Firebase ready. Users loaded:', _usersCache.length);
+    _firebaseReady = true;
+    console.log('HoneyBee: Firebase ready. Users:', _usersCache.length,
+                'UserData docs:', Object.keys(_userDataCache).length);
   } catch(e) {
     console.error('HoneyBee: Firebase init failed:', e);
     /* Fall back to localStorage so app still works offline */
@@ -160,26 +186,45 @@ async function initFirebase() {
 }
 
 function _fallbackToLocalStorage() {
-  console.warn('HoneyBee: falling back to localStorage');
+  console.warn('HoneyBee: Firebase unavailable — using localStorage fallback');
+  _firebaseReady = false;
   try {
     _usersCache = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const uid = getSessionUserId();
-    if (uid) {
-      const raw = localStorage.getItem('honeybee_user_' + uid);
-      _userDataCache[uid] = raw ? JSON.parse(raw) : { ...DEFAULT_USER_DATA };
+
+    /* Load ALL userData from localStorage so cross-user operations
+       (referral bonuses, etc.) work the same as the online path. */
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('honeybee_user_')) {
+        const userId = key.replace('honeybee_user_', '');
+        try {
+          _userDataCache[userId] = JSON.parse(localStorage.getItem(key));
+        } catch(e) { /* skip corrupt entry */ }
+      }
     }
   } catch(e) { _usersCache = []; }
 
   /* Override save functions to write to localStorage */
   _dbSetUser = function(userData) {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const idx = users.findIndex(u => u.id === userData.id);
-    if (idx !== -1) users[idx] = userData; else users.push(userData);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    try {
+      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+      const idx = users.findIndex(u => u.id === userData.id);
+      if (idx !== -1) users[idx] = userData; else users.push(userData);
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    } catch(e) { console.error('localStorage write user failed:', e); }
   };
   _dbSetUserData = function(userId, data) {
-    localStorage.setItem('honeybee_user_' + userId, JSON.stringify(data));
+    try {
+      localStorage.setItem('honeybee_user_' + userId, JSON.stringify(data));
+    } catch(e) { console.error('localStorage write userData failed:', e); }
   };
+
+  /* Warn the user so they know data is device-local only */
+  setTimeout(() => {
+    if (typeof toast === 'function') {
+      toast('⚠️ Offline mode — data saved to this device only', 'error');
+    }
+  }, 500);
 }
 
 /* ── Legacy no-ops ── */
