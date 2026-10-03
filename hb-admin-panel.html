@@ -378,7 +378,10 @@ const ADMIN_CUSTOM_PASS_KEY = 'hb_admin_custom_pass';
 const ADMIN_USER            = 'admin';
 const ADMIN_PASS_DEFAULT    = 'honeybee2024';
 
-/* ── Firebase setup ── */
+/* ══════════════════════════════════════
+   DATA LAYER — Firestore with localStorage fallback
+   Login is NEVER blocked by data loading.
+══════════════════════════════════════ */
 const _fbConfig = {
   apiKey:            'AIzaSyDuTk4nzrJ5WYdJOIQnLZx14bjXjohnJOc',
   authDomain:        'honeybee-55512.firebaseapp.com',
@@ -388,43 +391,90 @@ const _fbConfig = {
   appId:             '1:377234291130:web:1bbe4e3d8cd270441e8583'
 };
 
-let _db = null;
+let _db            = null;
 let _usersCache    = [];
 let _userDataCache = {};
+let _firebaseReady = false;
 
-async function initAdminFirebase() {
-  if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
-  _db = firebase.firestore();
-  await _reloadAll();
+/* Start Firebase load in background — never blocks UI */
+function _initFirebaseBackground() {
+  try {
+    if (typeof firebase === 'undefined') return;
+    if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+    _db = firebase.firestore();
+    _db.collection('users').get().then(snap => {
+      _usersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return _db.collection('userData').get();
+    }).then(snap => {
+      snap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
+      _firebaseReady = true;
+      console.log('HoneyBee Admin: Firebase ready,', _usersCache.length, 'users loaded');
+      /* If already logged in, refresh the view */
+      if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
+        refreshStats();
+        renderUsers();
+      }
+    }).catch(e => {
+      console.warn('Firebase load failed, using localStorage:', e.message);
+      _loadFromLocalStorage();
+      _firebaseReady = true;
+    });
+  } catch(e) {
+    console.warn('Firebase init error, using localStorage:', e.message);
+    _loadFromLocalStorage();
+    _firebaseReady = true;
+  }
+}
+
+function _loadFromLocalStorage() {
+  try { _usersCache = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e) { _usersCache = []; }
+  _usersCache.forEach(u => {
+    try {
+      const raw = localStorage.getItem('honeybee_user_' + u.id);
+      if (raw) _userDataCache[u.id] = JSON.parse(raw);
+    } catch(e) {}
+  });
 }
 
 async function _reloadAll() {
-  const snap = await _db.collection('users').get();
-  _usersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  // Load userData for all users
-  const udSnap = await _db.collection('userData').get();
-  _userDataCache = {};
-  udSnap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
+  if (_db) {
+    try {
+      const snap   = await _db.collection('users').get();
+      _usersCache  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const udSnap = await _db.collection('userData').get();
+      _userDataCache = {};
+      udSnap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
+    } catch(e) { console.warn('Reload failed:', e.message); }
+  } else {
+    _loadFromLocalStorage();
+  }
 }
 
 function getAllUsers() { return _usersCache.slice(); }
 
 function saveAllUsers(users) {
   _usersCache = users;
-  users.forEach(u => {
-    const { id, ...rest } = u;
-    _db.collection('users').doc(id).set(rest).catch(e => console.warn(e));
-  });
+  if (_db) {
+    users.forEach(u => {
+      const { id, ...rest } = u;
+      _db.collection('users').doc(id).set(rest).catch(e => console.warn(e));
+    });
+  } else {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
 }
 
-function getUserData(id) {
-  return _userDataCache[id] || {};
-}
+function getUserData(id) { return _userDataCache[id] || {}; }
 
 function saveUserData(id, d) {
   _userDataCache[id] = d;
-  _db.collection('userData').doc(id).set(d).catch(e => console.warn(e));
+  if (_db) {
+    _db.collection('userData').doc(id).set(d).catch(e => console.warn(e));
+  } else {
+    localStorage.setItem('honeybee_user_' + id, JSON.stringify(d));
+  }
 }
+
 function simpleHash(str) { let h=0; for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;} return h.toString(16); }
 function fmt(n) { return 'ETB ' + Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2}); }
 function fmtDate(iso) { if(!iso) return '—'; return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
@@ -663,35 +713,17 @@ function showApp() {
 }
 
 /* ── LOGIN / LOGOUT ── */
-document.getElementById('admin-login-btn').addEventListener('click', async function() {
+document.getElementById('admin-login-btn').addEventListener('click', function() {
   const u   = document.getElementById('admin-username').value.trim();
   const p   = document.getElementById('admin-password').value;
   const err = document.getElementById('admin-login-error');
-  const btn = this;
-
-  if (u !== ADMIN_USER || p !== getAdminPass()) {
+  if (u === ADMIN_USER && p === getAdminPass()) {
+    sessionStorage.setItem(ADMIN_AUTH, '1');
+    showApp();
+  } else {
     err.textContent = '❌ Incorrect username or password.';
     setTimeout(() => { err.textContent = ''; }, 3000);
-    return;
   }
-
-  // Correct credentials — wait for Firebase if still loading
-  if (!_firebaseReady) {
-    btn.disabled    = true;
-    btn.textContent = '⏳ Connecting…';
-    err.textContent = '';
-    // Poll until ready (max 10s)
-    let waited = 0;
-    while (!_firebaseReady && waited < 10000) {
-      await new Promise(r => setTimeout(r, 300));
-      waited += 300;
-    }
-    btn.disabled    = false;
-    btn.textContent = '🔑 Login to Dashboard';
-  }
-
-  sessionStorage.setItem(ADMIN_AUTH, '1');
-  showApp();
 });
 document.getElementById('admin-password').addEventListener('keydown', function(e) { if(e.key==='Enter') document.getElementById('admin-login-btn').click(); });
 document.getElementById('admin-logout-btn').addEventListener('click', function() {
@@ -834,22 +866,9 @@ document.getElementById('screenshot-lightbox').addEventListener('click', functio
 document.getElementById('lightbox-close').addEventListener('click', function(e) { e.stopPropagation(); document.getElementById('screenshot-lightbox').classList.remove('open'); });
 
 /* ── BOOT ── */
-// Load Firebase in background — don't block login button
-let _firebaseReady = false;
-(async function() {
-  try {
-    await initAdminFirebase();
-    _firebaseReady = true;
-    // If already logged in, refresh data and show app
-    if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
-      showApp();
-    }
-  } catch(e) {
-    console.error('Firebase init error:', e);
-    _firebaseReady = true; // allow login even if Firebase failed
-    if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
-  }
-})();
+// _firebaseReady is declared in the data layer above
+_initFirebaseBackground();
+if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
 
 /* ── AUTO REFRESH ── */
 setInterval(async function() {
