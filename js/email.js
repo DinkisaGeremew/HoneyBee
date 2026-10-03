@@ -1,60 +1,79 @@
 /* ============================================
    HONEYBEE — email.js
-   Admin email notifications via local backend
-   (Node.js + Nodemailer + Gmail SMTP)
+   Admin email notifications via EmailJS
+   (Runs in browser — no server, no sleep issues)
+
+   SETUP (one-time, 5 minutes):
+   1. Go to https://emailjs.com → Sign Up Free
+   2. Add Service → Gmail → connect dinkisa1212@gmail.com
+      → copy Service ID  → paste as EMAILJS_SERVICE_ID
+   3. Create Template → copy Template ID → paste as EMAILJS_TEMPLATE_ID
+      Template body should contain:
+        Event: {{event_type}}
+        User: {{user_name}} / {{user_phone}}
+        {{detail_label}}: {{detail_value}}
+        {{extra_label}}: {{extra_value}}
+        Time: {{timestamp}}
+   4. Account → API Keys → copy Public Key → paste as EMAILJS_PUBLIC_KEY
    ============================================ */
 
-// Point this at your running server.
-// Locally: http://localhost:3001
-// Deployed on Render/Railway: https://your-app.onrender.com
-const EMAIL_SERVER_URL = 'https://honeybee-email-server.onrender.com';
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const ADMIN_EMAIL         = 'dinkisa1212@gmail.com';
 
-/* ── Core send function — with retry ── */
+/* ── Load EmailJS SDK once ── */
+let _ejsReady = false;
+function loadEmailJS() {
+  return new Promise((resolve, reject) => {
+    if (_ejsReady) return resolve();
+    if (window.emailjs && typeof window.emailjs.send === 'function') {
+      window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      _ejsReady = true;
+      return resolve();
+    }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+    s.onload = () => {
+      window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      _ejsReady = true;
+      resolve();
+    };
+    s.onerror = () => reject(new Error('EmailJS SDK failed to load'));
+    document.head.appendChild(s);
+  });
+}
+
+/* ── Core send ── */
 async function sendAdminEmail(params) {
-  const attempt = async () => {
-    const res = await fetch(`${EMAIL_SERVER_URL}/send-email`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(params)
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || res.status);
-    }
-    return true;
-  };
-
+  if (
+    EMAILJS_SERVICE_ID  === 'YOUR_SERVICE_ID'  ||
+    EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID' ||
+    EMAILJS_PUBLIC_KEY  === 'YOUR_PUBLIC_KEY'
+  ) {
+    console.warn('HoneyBee: EmailJS not configured yet.');
+    return;
+  }
   try {
-    await attempt();
-    console.log('HoneyBee: Admin email sent —', params.event_type);
-  } catch (e1) {
-    // Server may have been sleeping — wait 4s and retry once
-    console.warn('HoneyBee: First attempt failed, retrying in 4s…', e1.message);
-    await new Promise(r => setTimeout(r, 4000));
-    try {
-      await attempt();
-      console.log('HoneyBee: Admin email sent (retry) —', params.event_type);
-    } catch (e2) {
-      console.warn('HoneyBee: Email failed after retry —', e2.message);
-    }
+    await loadEmailJS();
+    await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email:    ADMIN_EMAIL,
+      timestamp:   new Date().toLocaleString('en-US', {
+        month:'short', day:'numeric', year:'numeric',
+        hour:'2-digit', minute:'2-digit'
+      }),
+      ...params
+    });
+    console.log('HoneyBee: email sent —', params.event_type);
+  } catch (err) {
+    console.warn('HoneyBee: email failed —', err);
   }
 }
 
-/* ── Keep server awake — ping every 10 minutes ── */
-setInterval(() => {
-  fetch(`${EMAIL_SERVER_URL}/health`).catch(() => {});
-}, 10 * 60 * 1000);
-
-// Also ping immediately on page load to wake the server early
-fetch(`${EMAIL_SERVER_URL}/health`).catch(() => {});
-
 /* ══════════════════════════════════════
-   PUBLIC NOTIFICATION HELPERS
+   NOTIFICATION HELPERS
 ══════════════════════════════════════ */
 
-/**
- * Called after a new user successfully registers.
- */
 function notifyAdminNewUser(user) {
   sendAdminEmail({
     event_type:   '🐝 New User Registration',
@@ -63,13 +82,10 @@ function notifyAdminNewUser(user) {
     detail_label: 'Referral Code',
     detail_value: user.referralCode || '—',
     extra_label:  'Referred By',
-    extra_value:  user.referredBy ? 'Yes (another user)' : 'No'
+    extra_value:  user.referredBy ? 'Yes' : 'No'
   });
 }
 
-/**
- * Called after a user submits a deposit request.
- */
 function notifyAdminDeposit(user, deposit) {
   sendAdminEmail({
     event_type:   '💳 New Deposit — Awaiting Verification',
@@ -77,14 +93,11 @@ function notifyAdminDeposit(user, deposit) {
     user_phone:   '+251 ' + user.phone,
     detail_label: 'Amount',
     detail_value: 'ETB ' + Number(deposit.amount).toLocaleString(),
-    extra_label:  'Payment Method & Reference',
+    extra_label:  'Method & Reference',
     extra_value:  deposit.methodLabel + ' — Ref: ' + deposit.txnNumber
   });
 }
 
-/**
- * Called after a user initiates a withdrawal.
- */
 function notifyAdminWithdrawal(user, withdrawal) {
   sendAdminEmail({
     event_type:   '💸 New Withdrawal Request',
