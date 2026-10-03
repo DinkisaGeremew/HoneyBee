@@ -663,12 +663,35 @@ function showApp() {
 }
 
 /* ── LOGIN / LOGOUT ── */
-document.getElementById('admin-login-btn').addEventListener('click', function() {
-  const u = document.getElementById('admin-username').value.trim();
-  const p = document.getElementById('admin-password').value;
+document.getElementById('admin-login-btn').addEventListener('click', async function() {
+  const u   = document.getElementById('admin-username').value.trim();
+  const p   = document.getElementById('admin-password').value;
   const err = document.getElementById('admin-login-error');
-  if (u === ADMIN_USER && p === getAdminPass()) { sessionStorage.setItem(ADMIN_AUTH,'1'); showApp(); }
-  else { err.textContent = '❌ Incorrect username or password.'; setTimeout(()=>{err.textContent='';},3000); }
+  const btn = this;
+
+  if (u !== ADMIN_USER || p !== getAdminPass()) {
+    err.textContent = '❌ Incorrect username or password.';
+    setTimeout(() => { err.textContent = ''; }, 3000);
+    return;
+  }
+
+  // Correct credentials — wait for Firebase if still loading
+  if (!_firebaseReady) {
+    btn.disabled    = true;
+    btn.textContent = '⏳ Connecting…';
+    err.textContent = '';
+    // Poll until ready (max 10s)
+    let waited = 0;
+    while (!_firebaseReady && waited < 10000) {
+      await new Promise(r => setTimeout(r, 300));
+      waited += 300;
+    }
+    btn.disabled    = false;
+    btn.textContent = '🔑 Login to Dashboard';
+  }
+
+  sessionStorage.setItem(ADMIN_AUTH, '1');
+  showApp();
 });
 document.getElementById('admin-password').addEventListener('keydown', function(e) { if(e.key==='Enter') document.getElementById('admin-login-btn').click(); });
 document.getElementById('admin-logout-btn').addEventListener('click', function() {
@@ -811,18 +834,21 @@ document.getElementById('screenshot-lightbox').addEventListener('click', functio
 document.getElementById('lightbox-close').addEventListener('click', function(e) { e.stopPropagation(); document.getElementById('screenshot-lightbox').classList.remove('open'); });
 
 /* ── BOOT ── */
+// Load Firebase in background — don't block login button
+let _firebaseReady = false;
 (async function() {
   try {
-    document.getElementById('admin-login-btn').disabled = true;
-    document.getElementById('admin-login-btn').textContent = '⏳ Loading…';
     await initAdminFirebase();
+    _firebaseReady = true;
+    // If already logged in, refresh data and show app
+    if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
+      showApp();
+    }
   } catch(e) {
     console.error('Firebase init error:', e);
-  } finally {
-    document.getElementById('admin-login-btn').disabled = false;
-    document.getElementById('admin-login-btn').textContent = '🔑 Login to Dashboard';
+    _firebaseReady = true; // allow login even if Firebase failed
+    if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
   }
-  if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
 })();
 
 /* ── AUTO REFRESH ── */
