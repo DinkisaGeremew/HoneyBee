@@ -365,10 +365,6 @@
 <!-- TOAST -->
 <div id="admin-toast"></div>
 
-<!-- Firebase CDN -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <script>
 /* ── CONSTANTS ── */
 const USERS_KEY             = 'honeybee_users';
@@ -379,101 +375,22 @@ const ADMIN_USER            = 'admin';
 const ADMIN_PASS_DEFAULT    = 'honeybee2024';
 
 /* ══════════════════════════════════════
-   DATA LAYER — Firestore with localStorage fallback
-   Login is NEVER blocked by data loading.
+   DATA LAYER — localStorage only
+   Fast, synchronous, no dependencies.
 ══════════════════════════════════════ */
-const _fbConfig = {
-  apiKey:            'AIzaSyDuTk4nzrJ5WYdJOIQnLZx14bjXjohnJOc',
-  authDomain:        'honeybee-55512.firebaseapp.com',
-  projectId:         'honeybee-55512',
-  storageBucket:     'honeybee-55512.firebasestorage.app',
-  messagingSenderId: '377234291130',
-  appId:             '1:377234291130:web:1bbe4e3d8cd270441e8583'
-};
-
-let _db            = null;
-let _usersCache    = [];
-let _userDataCache = {};
-let _firebaseReady = false;
-
-/* Start Firebase load in background — never blocks UI */
-function _initFirebaseBackground() {
-  try {
-    if (typeof firebase === 'undefined') return;
-    if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
-    _db = firebase.firestore();
-    _db.collection('users').get().then(snap => {
-      _usersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      return _db.collection('userData').get();
-    }).then(snap => {
-      snap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
-      _firebaseReady = true;
-      console.log('HoneyBee Admin: Firebase ready,', _usersCache.length, 'users loaded');
-      /* If already logged in, refresh the view */
-      if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
-        refreshStats();
-        renderUsers();
-      }
-    }).catch(e => {
-      console.warn('Firebase load failed, using localStorage:', e.message);
-      _loadFromLocalStorage();
-      _firebaseReady = true;
-    });
-  } catch(e) {
-    console.warn('Firebase init error, using localStorage:', e.message);
-    _loadFromLocalStorage();
-    _firebaseReady = true;
-  }
+function getAllUsers() {
+  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e) { return []; }
 }
-
-function _loadFromLocalStorage() {
-  try { _usersCache = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e) { _usersCache = []; }
-  _usersCache.forEach(u => {
-    try {
-      const raw = localStorage.getItem('honeybee_user_' + u.id);
-      if (raw) _userDataCache[u.id] = JSON.parse(raw);
-    } catch(e) {}
-  });
-}
-
-async function _reloadAll() {
-  if (_db) {
-    try {
-      const snap   = await _db.collection('users').get();
-      _usersCache  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const udSnap = await _db.collection('userData').get();
-      _userDataCache = {};
-      udSnap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
-    } catch(e) { console.warn('Reload failed:', e.message); }
-  } else {
-    _loadFromLocalStorage();
-  }
-}
-
-function getAllUsers() { return _usersCache.slice(); }
-
 function saveAllUsers(users) {
-  _usersCache = users;
-  if (_db) {
-    users.forEach(u => {
-      const { id, ...rest } = u;
-      _db.collection('users').doc(id).set(rest).catch(e => console.warn(e));
-    });
-  } else {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
-
-function getUserData(id) { return _userDataCache[id] || {}; }
-
+function getUserData(id) {
+  try { return JSON.parse(localStorage.getItem('honeybee_user_' + id) || '{}'); } catch(e) { return {}; }
+}
 function saveUserData(id, d) {
-  _userDataCache[id] = d;
-  if (_db) {
-    _db.collection('userData').doc(id).set(d).catch(e => console.warn(e));
-  } else {
-    localStorage.setItem('honeybee_user_' + id, JSON.stringify(d));
-  }
+  localStorage.setItem('honeybee_user_' + id, JSON.stringify(d));
 }
+async function _reloadAll() { /* no-op — localStorage is always current */ }
 
 function simpleHash(str) { let h=0; for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;} return h.toString(16); }
 function fmt(n) { return 'ETB ' + Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2}); }
@@ -866,10 +783,7 @@ document.getElementById('screenshot-lightbox').addEventListener('click', functio
 document.getElementById('lightbox-close').addEventListener('click', function(e) { e.stopPropagation(); document.getElementById('screenshot-lightbox').classList.remove('open'); });
 
 /* ── BOOT ── */
-// _firebaseReady is declared in the data layer above
-_initFirebaseBackground();
 if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
-
 /* ── AUTO REFRESH ── */
 setInterval(async function() {
   if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
