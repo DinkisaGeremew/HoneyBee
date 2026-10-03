@@ -614,8 +614,6 @@ const ADMIN_CUSTOM_PASS_KEY = 'hb_admin_custom_pass';
 const ADMIN_USER         = 'admin';
 const ADMIN_PASS_DEFAULT = 'honeybee2024';
 
-document.addEventListener('DOMContentLoaded', function() {
-
 function getAdminPass() {
   return sessionStorage.getItem(ADMIN_CUSTOM_PASS_KEY) || ADMIN_PASS_DEFAULT;
 }
@@ -1290,8 +1288,6 @@ function showMsg(el, text, type) {
 setInterval(() => {
   if (sessionStorage.getItem(ADMIN_AUTH) === '1') refreshStats();
 }, 30000);
-
-}); // end DOMContentLoaded
 </script>
 </body>
 </html>
