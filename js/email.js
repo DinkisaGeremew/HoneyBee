@@ -30,9 +30,8 @@ async function sendAdminEmail(params) {
     }
     throw new Error('Server returned ' + res.status);
   } catch (e1) {
-    console.warn('HoneyBee: attempt 1 failed —', e1.message, '— retrying in 55s');
-    // Wait 55s for Render to fully wake up then retry
-    await new Promise(r => setTimeout(r, 55000));
+    console.warn('HoneyBee: attempt 1 failed —', e1.message, '— retrying in 25s');
+    await new Promise(r => setTimeout(r, 25000));
     try {
       const res2 = await doSend();
       if (res2.ok) {
