@@ -1,7 +1,7 @@
 /* ============================================
    HoneyBee — Email Notification Server
-   Node.js + Express + Resend API (HTTPS)
-   No SMTP needed — works on Render free tier
+   Node.js + Express + Gmail API (HTTPS)
+   Uses Gmail API over port 443 — works on Render
    ============================================ */
 
 require('dotenv').config();
@@ -14,6 +14,102 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
+
+/* ══════════════════════════════════════
+   Gmail REST API email sender
+   Sends email via Gmail API over HTTPS
+   (port 443) — no SMTP needed.
+══════════════════════════════════════ */
+
+function getGmailToken() {
+  return new Promise((resolve, reject) => {
+    const postData = new URLSearchParams({
+      client_id:     process.env.GMAIL_CLIENT_ID || '',
+      client_secret: process.env.GMAIL_CLIENT_SECRET || '',
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN || '',
+      grant_type:    'refresh_token'
+    }).toString();
+
+    const options = {
+      hostname: 'oauth2.googleapis.com',
+      path:     '/token',
+      method:   'POST',
+      headers:  {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data.access_token) resolve(data.access_token);
+          else reject(new Error('No access_token: ' + body));
+        } catch(e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Token timeout')); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+function buildRawEmail(from, to, subject, htmlBody) {
+  const lines = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `Content-Type: text/html; charset=UTF-8`,
+    `MIME-Version: 1.0`,
+    ``,
+    htmlBody
+  ];
+  const raw = lines.join('\r\n');
+  return Buffer.from(raw).toString('base64url');
+}
+
+function sendViaGmailApi(accessToken, rawEmail) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({ raw: rawEmail });
+
+    const options = {
+      hostname: 'gmail.googleapis.com',
+      path:     '/gmail/v1/users/me/messages/send',
+      method:   'POST',
+      headers:  {
+        'Authorization':  `Bearer ${accessToken}`,
+        'Content-Type':    'application/json',
+        'Content-Length':  Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve(JSON.parse(body));
+        } else {
+          reject(new Error(`Gmail API error ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Gmail API timeout')); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function sendEmail(from, to, subject, htmlBody) {
+  const accessToken = await getGmailToken();
+  const rawEmail    = buildRawEmail(from, to, subject, htmlBody);
+  return sendViaGmailApi(accessToken, rawEmail);
+}
 
 /* ── HTML email template ── */
 function buildEmailHtml(data) {
@@ -70,45 +166,6 @@ function buildEmailHtml(data) {
 </body></html>`;
 }
 
-/* ── Send email via Resend API (HTTPS, no SMTP) ── */
-function sendViaResend(from, to, subject, html) {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      from:    from,
-      to:      to,
-      subject: subject,
-      html:    html
-    });
-
-    const options = {
-      hostname: 'api.resend.com',
-      path:     '/emails',
-      method:   'POST',
-      headers:  {
-        'Authorization':  `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, res => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          resolve(JSON.parse(body));
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${body}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Resend API timeout')); });
-    req.write(postData);
-    req.end();
-  });
-}
-
 /* ══════════════════════════════════════
    POST /send-email
 ══════════════════════════════════════ */
@@ -127,9 +184,7 @@ app.post('/send-email', async (req, res) => {
     month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'
   });
 
-  /* Resend requires a verified domain or uses onboarding@resend.dev
-     When you verify your domain in Resend, switch to your Gmail address */
-  const from    = process.env.RESEND_FROM || 'HoneyBee Admin <onboarding@resend.dev>';
+  const from    = '"HoneyBee Admin" <' + process.env.GMAIL_USER + '>';
   const to      = process.env.ADMIN_EMAIL;
   const subject = 'HoneyBee — ' + event_type;
   const html    = buildEmailHtml({
@@ -142,7 +197,7 @@ app.post('/send-email', async (req, res) => {
   });
 
   try {
-    await sendViaResend(from, to, subject, html);
+    await sendEmail(from, to, subject, html);
     console.log('✅ Email sent:', event_type, 'for', user_name);
     if (!res.headersSent) res.json({ ok: true });
   } catch (err) {
@@ -155,9 +210,11 @@ app.post('/send-email', async (req, res) => {
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
-    service: 'HoneyBee Email Server (Resend)',
+    service: 'HoneyBee Email Server (Gmail API)',
     admin: process.env.ADMIN_EMAIL || 'not set',
-    hasApiKey: !!process.env.RESEND_API_KEY
+    hasClientId: !!process.env.GMAIL_CLIENT_ID,
+    hasClientSecret: !!process.env.GMAIL_CLIENT_SECRET,
+    hasRefreshToken: !!process.env.GMAIL_REFRESH_TOKEN
   });
 });
 
@@ -172,5 +229,8 @@ setInterval(() => {
 app.listen(PORT, () => {
   console.log('HoneyBee email server on port', PORT);
   console.log('Admin email:', process.env.ADMIN_EMAIL || 'NOT SET');
-  console.log('Resend API key set:', !!process.env.RESEND_API_KEY);
+  console.log('Gmail user:', process.env.GMAIL_USER || 'NOT SET');
+  console.log('Has client ID:', !!process.env.GMAIL_CLIENT_ID);
+  console.log('Has client secret:', !!process.env.GMAIL_CLIENT_SECRET);
+  console.log('Has refresh token:', !!process.env.GMAIL_REFRESH_TOKEN);
 });
