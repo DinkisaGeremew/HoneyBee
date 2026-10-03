@@ -54,7 +54,8 @@ function initAuth() {
 
     if (!name)               return authError('register-error', 'Please enter your full name');
     if (!phone)              return authError('register-error', 'Please enter your phone number');
-    if (phone.length < 9)    return authError('register-error', 'Enter a valid phone number (9 digits)');
+    if (phone.length !== 9)  return authError('register-error', 'Phone number must be exactly 9 digits (e.g. 912345678)');
+    if (!/^[0-9]{9}$/.test(phone)) return authError('register-error', 'Phone number must contain digits only');
     if (password.length < 6) return authError('register-error', 'Password must be at least 6 characters');
 
     // Check duplicate phone in persistent user registry

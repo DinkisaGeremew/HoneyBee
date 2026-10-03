@@ -11,7 +11,7 @@ const PRODUCTS_DATA = [
     weight: '500g',
     price: 1000,
     dailyReward: 100,
-    totalReturn: 500,
+    totalReturn: 1500,
     returnDays: 15,
     skipSundays: true,           // Oromia: no reward on Sundays
     badge: 'Best Seller',
