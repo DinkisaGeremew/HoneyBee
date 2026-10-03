@@ -238,13 +238,20 @@ function setElText(id, text) {
 }
 
 /* ── Boot ── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  /* Show loading state */
+  document.getElementById('auth-screen').style.opacity = '0.5';
+
+  /* Wait for Firebase cache to load */
+  await initFirebase();
+
+  /* Restore opacity */
+  document.getElementById('auth-screen').style.opacity = '';
+
   const userId = getSessionUserId();
   if (userId) {
-    // Verify the session user actually exists in the registry
     const user = loadUsers().find(u => u.id === userId);
     if (user) {
-      // Already logged in — skip auth, go straight to app
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-app').classList.remove('hidden');
       checkDayReset();
@@ -252,9 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAll();
       return;
     }
-    // Session points to a deleted/unknown user — clear it
     setSessionUserId(null);
   }
-  // Not logged in — show auth screen (initAuth binds listeners once)
   initAuth();
 });

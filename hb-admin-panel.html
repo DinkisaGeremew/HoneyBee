@@ -365,6 +365,10 @@
 <!-- TOAST -->
 <div id="admin-toast"></div>
 
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script>
 /* ── CONSTANTS ── */
 const USERS_KEY             = 'honeybee_users';
@@ -374,12 +378,53 @@ const ADMIN_CUSTOM_PASS_KEY = 'hb_admin_custom_pass';
 const ADMIN_USER            = 'admin';
 const ADMIN_PASS_DEFAULT    = 'honeybee2024';
 
-/* ── HELPERS ── */
-function getAdminPass() { return sessionStorage.getItem(ADMIN_CUSTOM_PASS_KEY) || ADMIN_PASS_DEFAULT; }
-function getAllUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e) { return []; } }
-function saveAllUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
-function getUserData(id) { try { return JSON.parse(localStorage.getItem('honeybee_user_' + id) || '{}'); } catch(e) { return {}; } }
-function saveUserData(id, d) { localStorage.setItem('honeybee_user_' + id, JSON.stringify(d)); }
+/* ── Firebase setup ── */
+const _fbConfig = {
+  apiKey:            'AIzaSyDuTk4nzrJ5WYdJOIQnLZx14bjXjohnJOc',
+  authDomain:        'honeybee-55512.firebaseapp.com',
+  projectId:         'honeybee-55512',
+  storageBucket:     'honeybee-55512.firebasestorage.app',
+  messagingSenderId: '377234291130',
+  appId:             '1:377234291130:web:1bbe4e3d8cd270441e8583'
+};
+
+let _db = null;
+let _usersCache    = [];
+let _userDataCache = {};
+
+async function initAdminFirebase() {
+  if (!firebase.apps.length) firebase.initializeApp(_fbConfig);
+  _db = firebase.firestore();
+  await _reloadAll();
+}
+
+async function _reloadAll() {
+  const snap = await _db.collection('users').get();
+  _usersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Load userData for all users
+  const udSnap = await _db.collection('userData').get();
+  _userDataCache = {};
+  udSnap.docs.forEach(d => { _userDataCache[d.id] = d.data(); });
+}
+
+function getAllUsers() { return _usersCache.slice(); }
+
+function saveAllUsers(users) {
+  _usersCache = users;
+  users.forEach(u => {
+    const { id, ...rest } = u;
+    _db.collection('users').doc(id).set(rest).catch(e => console.warn(e));
+  });
+}
+
+function getUserData(id) {
+  return _userDataCache[id] || {};
+}
+
+function saveUserData(id, d) {
+  _userDataCache[id] = d;
+  _db.collection('userData').doc(id).set(d).catch(e => console.warn(e));
+}
 function simpleHash(str) { let h=0; for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;} return h.toString(16); }
 function fmt(n) { return 'ETB ' + Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2}); }
 function fmtDate(iso) { if(!iso) return '—'; return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
@@ -658,7 +703,7 @@ document.querySelectorAll('[data-filter]').forEach(function(btn) {
     renderPayments();
   });
 });
-document.getElementById('refresh-payments-btn').addEventListener('click', renderPayments);
+document.getElementById('refresh-payments-btn').addEventListener('click', async function() { await _reloadAll(); renderPayments(); });
 
 /* ── WITHDRAWAL FILTER TABS ── */
 document.querySelectorAll('[data-wfilter]').forEach(function(btn) {
@@ -669,7 +714,7 @@ document.querySelectorAll('[data-wfilter]').forEach(function(btn) {
     renderWithdrawals();
   });
 });
-document.getElementById('refresh-withdrawals-btn').addEventListener('click', renderWithdrawals);
+document.getElementById('refresh-withdrawals-btn').addEventListener('click', async function() { await _reloadAll(); renderWithdrawals(); });
 
 /* ── CHANGE ADMIN PASSWORD ── */
 document.getElementById('cmp-save-btn').addEventListener('click', function() {
@@ -766,10 +811,27 @@ document.getElementById('screenshot-lightbox').addEventListener('click', functio
 document.getElementById('lightbox-close').addEventListener('click', function(e) { e.stopPropagation(); document.getElementById('screenshot-lightbox').classList.remove('open'); });
 
 /* ── BOOT ── */
-if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
+(async function() {
+  try {
+    document.getElementById('admin-login-btn').disabled = true;
+    document.getElementById('admin-login-btn').textContent = '⏳ Loading…';
+    await initAdminFirebase();
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  } finally {
+    document.getElementById('admin-login-btn').disabled = false;
+    document.getElementById('admin-login-btn').textContent = '🔑 Login to Dashboard';
+  }
+  if (sessionStorage.getItem(ADMIN_AUTH) === '1') showApp();
+})();
 
 /* ── AUTO REFRESH ── */
-setInterval(function() { if (sessionStorage.getItem(ADMIN_AUTH) === '1') refreshStats(); }, 30000);
+setInterval(async function() {
+  if (sessionStorage.getItem(ADMIN_AUTH) === '1') {
+    await _reloadAll();
+    refreshStats();
+  }
+}, 30000);
 </script>
 </body>
 </html>

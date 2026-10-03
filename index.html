@@ -749,6 +749,10 @@
 </div><!-- /app-shell -->
 
 <!-- Scripts — load order matters -->
+<!-- Firebase CDN (must be first) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script src="js/utils.js"></script>
 <script src="js/email.js"></script>
 <script src="js/auth.js"></script>
