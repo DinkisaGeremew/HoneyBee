@@ -128,6 +128,17 @@ app.post('/send-email', async (req, res) => {
 /* ── Health check ── */
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'HoneyBee Email Server' }));
 
+/* ── Self-ping every 14 minutes to prevent Render sleep ── */
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://honeybee-email-server.onrender.com';
+setInterval(() => {
+  const https = require('https');
+  https.get(SELF_URL + '/health', res => {
+    console.log('🔄 Keep-alive ping — status:', res.statusCode);
+  }).on('error', err => {
+    console.warn('Keep-alive ping failed:', err.message);
+  });
+}, 14 * 60 * 1000); // every 14 minutes
+
 app.listen(PORT, () => {
   console.log(`🐝 HoneyBee email server on port ${PORT}`);
   console.log(`📧 Admin: ${process.env.ADMIN_EMAIL || 'not set'}`);
